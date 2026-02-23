@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const feedbackSchema = new mongoose.Schema({
+const feedbackEntrySchema  = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -30,10 +30,22 @@ const feedbackSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  idealSchool: {
+    type: String,
+    default: '',
+  },
   submittedAt: {
     type: Date,
     default: Date.now,
   },
+ 
 });
-
+ const feedbackSchema = new mongoose.Schema({
+  courseName: {
+    type: String,
+    required: true,
+    unique: true,  
+  },
+  entries: [feedbackEntrySchema],  
+})
 module.exports = mongoose.model('Feedback', feedbackSchema);

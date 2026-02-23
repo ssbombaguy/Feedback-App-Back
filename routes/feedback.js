@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Feedback = require('../models/Feedback');
+const { protectEndpoint } = require('../middleware/auth');
 
-router.post('/', async (req, res) => {
+router.post('/', protectEndpoint, async (req, res) => {
   try {
     const { 
       userId, 
@@ -12,41 +13,54 @@ router.post('/', async (req, res) => {
       teacherEvaluation,
       practicalUse,
       studentRequests,
-      returnAsTeacher 
+      returnAsTeacher,
+      idealSchool,
     } = req.body;
 
-    if (!userId || !courseName || !courseEvaluation || !teacherEvaluation || !practicalUse || !studentRequests) {
+    if (userId && userId !== req.userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized: Cannot submit feedback for another user',
+      });
+    }
+
+    if (!userId || !courseName || !courseEvaluation || !teacherEvaluation || !practicalUse || !studentRequests || !idealSchool) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const user = await User.findById(userId);
-
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const feedbackExists = await Feedback.findOne({
-      userId,
+    const existingFeedback = await Feedback.findOne({
       courseName,
+      'entries.userId': userId,
     });
 
-    if (feedbackExists) {
+    if (existingFeedback) {
       return res.status(409).json({
         error: 'You have already submitted feedback for this course',
       });
     }
 
-    const newFeedback = new Feedback({
-      userId,
-      courseName,
-      courseEvaluation,
-      teacherEvaluation,
-      practicalUse,
-      studentRequests,
-      returnAsTeacher: returnAsTeacher || false,
-    });
-
-    await newFeedback.save();
+    await Feedback.findOneAndUpdate(
+      { courseName },
+      {
+        $push: {
+          entries: {
+            userId,
+            courseEvaluation,
+            teacherEvaluation,
+            practicalUse,
+            studentRequests,
+            idealSchool,
+            returnAsTeacher: returnAsTeacher || false,
+          },
+        },
+      },
+      { upsert: true, new: true }
+    );
 
     res.status(201).json({
       success: true,
@@ -58,20 +72,65 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/user/:userId', async (req, res) => {
+router.get('/user/:userId', protectEndpoint, async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const feedbackList = await Feedback.find({ userId }).sort({
-      submittedAt: -1,
+    if (userId !== req.userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized: Cannot access other users feedback',
+      });
+    }
+
+    const feedbackDocs = await Feedback.find({
+      'entries.userId': userId,
     });
 
+    const userFeedback = feedbackDocs.map(doc => {
+      const entry = doc.entries.find(e => e.userId.toString() === userId)
+      return {
+        courseName: doc.courseName,
+        ...entry.toObject(),
+      }
+    })
+
     res.status(200).json({
-      feedback: feedbackList,
+      success: true,
+      feedback: userFeedback,
+      count: userFeedback.length,
     });
   } catch (error) {
     console.error('Get feedback error:', error);
     res.status(500).json({ error: 'Failed to get feedback' });
+  }
+});
+
+router.get('/course/:courseName', async (req, res) => {
+  try {
+    const { courseName } = req.params;
+
+    const feedbackDoc = await Feedback.findOne({ courseName })
+      .populate('entries.userId', 'name lastname email')
+
+    if (!feedbackDoc) {
+      return res.status(200).json({
+        success: true,
+        course: courseName,
+        feedback: [],
+        count: 0,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      course: courseName,
+      feedback: feedbackDoc.entries,
+      count: feedbackDoc.entries.length,
+    });
+  } catch (error) {
+    console.error('Get course feedback error:', error);
+    res.status(500).json({ error: 'Failed to get course feedback' });
   }
 });
 

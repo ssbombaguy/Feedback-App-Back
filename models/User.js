@@ -27,15 +27,13 @@ const userSchema = new mongoose.Schema({
   grade: String,
   courses: {
     active: {
-      courseName: String,
-      focusArea: String,
-      teacher: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Course',
     },
     passed: [
       {
-        courseName: String,
-        focusArea: String,
-        teacher: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Course',
       },
     ],
   },
