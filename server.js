@@ -34,9 +34,9 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n========================================`);
   console.log(`Server running on port ${PORT}`);
   console.log(`http://localhost:${PORT}`);
-  console.log(`http://192.168.100.2:${PORT}`);
+  console.log(`http://192.168.1.223:${PORT}`);
   console.log(`========================================`);
-  console.log(`API Base URL: http://192.168.100.2:${PORT}/api`);
+  console.log(`API Base URL: http://192.168.1.223:${PORT}/api`);
   console.log(`\nAvailable endpoints:`);
   console.log(`  POST   /api/auth/login`);
   console.log(`  GET    /api/auth/verify-token`);

@@ -105,4 +105,46 @@ router.get('/me/profile', protectEndpoint, async (req, res) => {
   }
 });
 
+router.put('/me', protectEndpoint, async (req, res) => {
+  try {
+    const { name, lastname, email } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      req.userId,
+      {
+        name,
+        lastname,
+        email: email?.toLowerCase(),
+        updatedAt: Date.now(),
+      },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        lastname: user.lastname,
+        email: user.email,
+        phone: user.phone,
+        privateNumber: user.privateNumber,
+        profilePicture: user.profilePicture,
+        town: user.town,
+        grade: user.grade,
+        courses: user.courses,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update profile' });
+  }
+});
+
 module.exports = router;
