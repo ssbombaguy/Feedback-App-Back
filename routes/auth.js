@@ -43,6 +43,7 @@ router.post('/login', async (req, res) => {
       town: user.town,
       grade: user.grade,
       courses: user.courses || { active: [], passed: [] },
+      isAdmin: user.isAdmin,
     };
 
     res.status(200).json({ success: true, user: userResponse, token });

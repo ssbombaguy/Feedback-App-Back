@@ -14,11 +14,13 @@ const authRoutes = require('./routes/auth');
 const feedbackRoutes = require('./routes/feedback');
 const courseRoutes = require('./routes/courses');
 const userRoutes = require('./routes/users');
+const adminRoutes = require('./routes/admin');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'Backend is running!' });
@@ -48,5 +50,13 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  GET    /api/feedback/course/:courseName`);
   console.log(`  GET    /api/courses`);
   console.log(`  GET    /api/courses/:courseId`);
+  console.log(`  GET    /api/admin/dashboard (admin)`);
+  console.log(`  GET    /api/admin/courses (admin)`);
+  console.log(`  GET    /api/admin/courses/:courseName/feedbacks (admin)`);
+  console.log(`  GET    /api/admin/courses/:courseName/feedbacks/:feedbackId (admin)`);
+  console.log(`  GET    /api/admin/courses/:courseName/statistics (admin)`);
+  console.log(`  GET    /api/admin/feedbacks (admin)`);
+  console.log(`  GET    /api/admin/users (admin)`);
+  console.log(`  GET    /api/admin/users/:userId (admin)`);
   console.log(`========================================\n`);
 });
