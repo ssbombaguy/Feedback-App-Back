@@ -15,7 +15,28 @@ router.post('/', protectEndpoint, async (req, res) => {
       studentRequests,
       returnAsTeacher,
       idealSchool,
+      anonymous,
     } = req.body;
+
+    // DEBUG: Log all incoming data
+    console.log('=== FEEDBACK SUBMISSION DEBUG ===');
+    console.log('Full request body:', JSON.stringify(req.body, null, 2));
+    console.log('returnAsTeacher (raw):', returnAsTeacher, 'type:', typeof returnAsTeacher);
+    console.log('anonymous (raw):', anonymous, 'type:', typeof anonymous);
+
+    // Helper function to convert values to boolean, handling strings
+    const toBoolean = (value) => {
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'string') return value.toLowerCase() === 'true';
+      return Boolean(value);
+    };
+
+    const finalReturnAsTeacher = toBoolean(returnAsTeacher);
+    const finalAnonymous = toBoolean(anonymous);
+
+    console.log('returnAsTeacher (converted):', finalReturnAsTeacher, 'type:', typeof finalReturnAsTeacher);
+    console.log('anonymous (converted):', finalAnonymous, 'type:', typeof finalAnonymous);
+    console.log('================================');
 
     if (userId && userId !== req.userId.toString()) {
       return res.status(403).json({
@@ -55,7 +76,8 @@ router.post('/', protectEndpoint, async (req, res) => {
             practicalUse,
             studentRequests,
             idealSchool,
-            returnAsTeacher: returnAsTeacher || false,
+            returnAsTeacher: finalReturnAsTeacher,
+            isAnonymous: finalAnonymous,
           },
         },
       },
