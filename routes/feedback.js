@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
 const Feedback = require('../models/Feedback');
 const { protectEndpoint } = require('../middleware/auth');
 
+// POST - submit feedback
 router.post('/', protectEndpoint, async (req, res) => {
   try {
     const { 
@@ -18,13 +18,6 @@ router.post('/', protectEndpoint, async (req, res) => {
       anonymous,
     } = req.body;
 
-    // DEBUG: Log all incoming data
-    console.log('=== FEEDBACK SUBMISSION DEBUG ===');
-    console.log('Full request body:', JSON.stringify(req.body, null, 2));
-    console.log('returnAsTeacher (raw):', returnAsTeacher, 'type:', typeof returnAsTeacher);
-    console.log('anonymous (raw):', anonymous, 'type:', typeof anonymous);
-
-    // Helper function to convert values to boolean, handling strings
     const toBoolean = (value) => {
       if (typeof value === 'boolean') return value;
       if (typeof value === 'string') return value.toLowerCase() === 'true';
@@ -33,10 +26,6 @@ router.post('/', protectEndpoint, async (req, res) => {
 
     const finalReturnAsTeacher = toBoolean(returnAsTeacher);
     const finalAnonymous = toBoolean(anonymous);
-
-    console.log('returnAsTeacher (converted):', finalReturnAsTeacher, 'type:', typeof finalReturnAsTeacher);
-    console.log('anonymous (converted):', finalAnonymous, 'type:', typeof finalAnonymous);
-    console.log('================================');
 
     if (userId && userId !== req.userId.toString()) {
       return res.status(403).json({
@@ -49,10 +38,6 @@ router.post('/', protectEndpoint, async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
 
     const existingFeedback = await Feedback.findOne({
       courseName,
@@ -94,6 +79,7 @@ router.post('/', protectEndpoint, async (req, res) => {
   }
 });
 
+// GET - user's own feedback
 router.get('/user/:userId', protectEndpoint, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -110,12 +96,12 @@ router.get('/user/:userId', protectEndpoint, async (req, res) => {
     });
 
     const userFeedback = feedbackDocs.map(doc => {
-      const entry = doc.entries.find(e => e.userId.toString() === userId)
+      const entry = doc.entries.find(e => e.userId.toString() === userId);
       return {
         courseName: doc.courseName,
         ...entry.toObject(),
-      }
-    })
+      };
+    });
 
     res.status(200).json({
       success: true,
@@ -128,12 +114,12 @@ router.get('/user/:userId', protectEndpoint, async (req, res) => {
   }
 });
 
+// GET - all feedback for a course (admin use, no auth)
 router.get('/course/:courseName', async (req, res) => {
   try {
     const { courseName } = req.params;
 
-    const feedbackDoc = await Feedback.findOne({ courseName })
-      .populate('entries.userId', 'name lastname email')
+    const feedbackDoc = await Feedback.findOne({ courseName });
 
     if (!feedbackDoc) {
       return res.status(200).json({

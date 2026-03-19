@@ -1,6 +1,6 @@
-const jwt = require('jsonwebtoken');
+const SCHOOL_API_BASE = process.env.MZIURI_BACK_URL;
 
-const verifyToken = (req, res, next) => {
+const verifyWithSchoolAPI = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -15,86 +15,32 @@ const verifyToken = (req, res, next) => {
       ? authHeader.slice(7)
       : authHeader;
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.userId;
-    req.userEmail = decoded.email;
+    const response = await fetch(`${SCHOOL_API_BASE}/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired token',
+      });
+    }
+
+    const user = await response.json();
+    req.userId = user.id.toString();
+    req.userEmail = user.email;
     next();
   } catch (error) {
     return res.status(401).json({
       success: false,
-      message: 'Invalid or expired token',
+      message: 'Token verification failed',
     });
   }
 };
 
-const isTokenActive = (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authorization header missing',
-      });
-    }
-
-    const token = authHeader.startsWith('Bearer ')
-      ? authHeader.slice(7)
-      : authHeader;
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    req.userId = decoded.userId;
-    req.userEmail = decoded.email;
-    next();
-  } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        success: false,
-        message: 'Token has expired',
-      });
-    }
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid token',
-    });
-  }
-};
-
-const protectEndpoint = (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) {
-      return res.status(401).json({
-        success: false,
-        message: 'Unauthorized: Token required',
-      });
-    }
-
-    const token = authHeader.startsWith('Bearer ')
-      ? authHeader.slice(7)
-      : authHeader;
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    if (!decoded.userId) {
-      return res.status(401).json({
-        success: false,
-        message: 'Unauthorized: Invalid token',
-      });
-    }
-    
-    req.userId = decoded.userId;
-    req.userEmail = decoded.email;
-    next();
-  } catch (error) {
-    return res.status(401).json({
-      success: false,
-      message: 'Unauthorized: Token verification failed',
-    });
-  }
-};
+const verifyToken = verifyWithSchoolAPI;
+const isTokenActive = verifyWithSchoolAPI;
+const protectEndpoint = verifyWithSchoolAPI;
 
 module.exports = {
   verifyToken,
