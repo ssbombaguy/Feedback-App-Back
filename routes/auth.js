@@ -1,85 +1,76 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
-const jwt = require('jsonwebtoken');
-const { verifyToken } = require('../middleware/auth');
+
+const SCHOOL_API_BASE = process.env.MZIURI_BACK_URL;
 
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log('Login attempt:', email);
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password required' });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() })
-      .populate('courses.active')
-      .populate('courses.passed');
+    const response = await fetch(`${SCHOOL_API_BASE}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
 
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: data.message || 'Login failed' });
     }
 
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign(
-      { userId: user._id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    const userResponse = {
-      id: user._id,
-      name: user.name,
-      lastname: user.lastname,
-      email: user.email,
-      phone: user.phone,
-      privateNumber: user.privateNumber,
-      profilePicture: user.profilePicture,
-      town: user.town,
-      grade: user.grade,
-      courses: user.courses || { active: [], passed: [] },
-      isAdmin: user.isAdmin,
-    };
-
-    res.status(200).json({ success: true, user: userResponse, token });
+    res.status(200).json({
+      success: true,
+      token: data.token,
+      user: data.user,
+    });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Login failed' });
   }
 });
 
-router.get('/verify-token', verifyToken, async (req, res) => {
+router.get('/verify-token', async (req, res) => {
   try {
-    const user = await User.findById(req.userId)
-      .populate('courses.active')
-      .populate('courses.passed');
+    const authHeader = req.headers.authorization;
 
-    if (!user) {
-      return res.status(401).json({ success: false, message: 'User not found' });
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, message: 'No token provided' });
     }
 
-    const userResponse = {
-      id: user._id,
-      name: user.name,
-      lastname: user.lastname,
-      email: user.email,
-      phone: user.phone,
-      privateNumber: user.privateNumber,
-      profilePicture: user.profilePicture,
-      town: user.town,
-      grade: user.grade,
-      courses: user.courses || { active: [], passed: [] },
-    };
+    const token = authHeader.split(' ')[1];
 
-    res.status(200).json({ success: true, user: userResponse });
+    const response = await fetch(`${SCHOOL_API_BASE}/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+
+    res.status(200).json({ success: true, user: data });
   } catch (error) {
     console.error('Verify token error:', error);
     res.status(500).json({ success: false, message: 'Failed to verify token' });
+  }
+});
+
+router.post('/logout', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    await fetch(`${SCHOOL_API_BASE}/logout`, {
+      method: 'POST',
+      headers: { Authorization: authHeader },
+    });
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Logout failed' });
   }
 });
 

@@ -33,30 +33,15 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n========================================`);
   console.log(`Server running on port ${PORT}`);
-  console.log(`http://localhost:${PORT}`);
-  console.log(`http://192.168.1.223:${PORT}`);
-  console.log(`========================================`);
-  console.log(`API Base URL: http://192.168.1.223:${PORT}/api`);
   console.log(`\nAvailable endpoints:`);
   console.log(`  POST   /api/auth/login`);
   console.log(`  GET    /api/auth/verify-token`);
-  console.log(`  GET    /api/users/:email`);
-  console.log(`  GET    /api/users/id/:userId (protected)`);
   console.log(`  GET    /api/users/me/profile (protected)`);
   console.log(`  POST   /api/feedback (protected)`);
   console.log(`  GET    /api/feedback/user/:userId (protected)`);
   console.log(`  GET    /api/feedback/course/:courseName`);
   console.log(`  GET    /api/courses`);
+  console.log(`  GET    /api/courses/enrolled (protected)`);
   console.log(`  GET    /api/courses/:courseId`);
-  console.log(`  GET    /api/admin/dashboard (admin)`);
-  console.log(`  GET    /api/admin/courses (admin)`);
-  console.log(`  GET    /api/admin/courses/:courseName/feedbacks (admin)`);
-  console.log(`  GET    /api/admin/courses/:courseName/feedbacks/:feedbackId (admin)`);
-  console.log(`  GET    /api/admin/courses/:courseName/statistics (admin)`);
-  console.log(`  GET    /api/admin/feedbacks (admin)`);
-  console.log(`  GET    /api/admin/users (admin)`);
-  console.log(`  GET    /api/admin/users/:userId (admin)`);
-  console.log(`========================================\n`);
 });

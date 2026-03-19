@@ -1,39 +1,72 @@
 const express = require('express');
 const router = express.Router();
-const Course = require('../models/Course');
-const { protectEndpoint } = require('../middleware/auth');
 
+const SCHOOL_API_BASE = process.env.MZIURI_BACK_URL;
+
+const getToken = (req) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  return authHeader.split(' ')[1];
+};
+
+// Public - no token needed
 router.get('/', async (req, res) => {
   try {
-    const courses = await Course.find().sort({ name: 1 });
+    const response = await fetch(`${SCHOOL_API_BASE}/courses`);
+    const data = await response.json();
 
-    res.status(200).json({
-      success: true,
-      courses: courses,
-    });
+    if (!response.ok) {
+      return res.status(response.status).json({ error: data.message || 'Failed to get courses' });
+    }
+
+    res.status(200).json({ success: true, courses: data });
   } catch (error) {
     console.error('Get courses error:', error);
     res.status(500).json({ error: 'Failed to get courses' });
   }
 });
 
-router.get('/:courseId', async (req, res) => {
+// Protected - token required
+router.get('/enrolled', async (req, res) => {
   try {
-    const { courseId } = req.params;
+    const token = getToken(req);
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
-    const course = await Course.findById(courseId);
+    const response = await fetch(`${SCHOOL_API_BASE}/user/courses`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-    if (!course) {
-      return res.status(404).json({
-        success: false,
-        error: 'Course not found',
-      });
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: data.message || 'Failed to get enrolled courses' });
     }
 
-    res.status(200).json({
-      success: true,
-      course: course,
+    res.status(200).json({ success: true, enrolled_courses: data.enrolled_courses });
+  } catch (error) {
+    console.error('Get enrolled courses error:', error);
+    res.status(500).json({ error: 'Failed to get enrolled courses' });
+  }
+});
+
+router.get('/:courseId', async (req, res) => {
+  try {
+    const token = getToken(req);
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { courseId } = req.params;
+
+    const response = await fetch(`${SCHOOL_API_BASE}/courses/${courseId}`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: data.message || 'Course not found' });
+    }
+
+    res.status(200).json({ success: true, course: data });
   } catch (error) {
     console.error('Get course error:', error);
     res.status(500).json({ error: 'Failed to get course' });
